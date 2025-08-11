@@ -89,5 +89,4 @@ public/
 .DS_Store
 
 # Env files
-.env
-.env.*
+# .env
