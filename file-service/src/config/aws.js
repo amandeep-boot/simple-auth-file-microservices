@@ -58,8 +58,12 @@ const verifyS3Config = async () => {
         const config = getAwsConfig();
         if (!config.accessKeyId || !config.secretAccessKey) {
             console.error('AWS credentials are missing. Please set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables.');
-        } else if (error.name === 'NoSuchBucket') {
-            console.error(`Bucket '${BUCKET_NAME}' does not exist. Please create it in the AWS Console.`);
+        } else if (error.name === 'NoSuchBucket' || error.message.includes('301') || error.name === 'UnknownError') {
+            console.error(`❌ S3 Bucket Error: Bucket '${BUCKET_NAME}' does not exist or is in a different region.`);
+            console.error('Solutions:');
+            console.error('1. Create the bucket in AWS S3 Console: https://s3.console.aws.amazon.com/');
+            console.error('2. Or change S3_BUCKET_NAME in .env to an existing bucket name');
+            console.error('3. Make sure the bucket is in the same region as AWS_REGION');
         } else if (error.name === 'InvalidAccessKeyId') {
             console.error('Invalid AWS Access Key ID. Please check your AWS_ACCESS_KEY_ID.');
         } else if (error.name === 'SignatureDoesNotMatch') {
@@ -71,7 +75,7 @@ const verifyS3Config = async () => {
         } else if (error.name === 'CredentialsProviderError') {
             console.error('AWS credentials not found or invalid.');
         } else {
-            console.error('Please check your AWS credentials, permissions, and network connection.');
+            console.error(`Please check your AWS credentials, permissions, and network connection. Error: ${error.name} - ${error.message}`);
         }
         throw error; // Re-throw to let server.js handle the exit
     }

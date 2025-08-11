@@ -31,7 +31,8 @@ try {
   console.log('✅ AWS S3 configuration verified successfully');
 } catch (error) {
   console.error('❌ Failed to verify S3 configuration:', error.message);
-  process.exit(1);
+  console.error('⚠️  File service will start but file uploads will fail until S3 is configured properly.');
+  console.error('📝 Please fix the S3 configuration and restart the service.');
 }
 const PORT = process.env.PORT || 3002;
 
