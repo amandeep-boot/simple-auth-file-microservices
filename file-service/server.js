@@ -7,8 +7,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Load environment variables FIRST
-const result = dotenv.config({ path: resolve(__dirname, '.env') });
-console.log('Dotenv result:', result);
+// const result = dotenv.config({ path: resolve(__dirname, '.env') });
+dotenv.config({ path: resolve(__dirname, '.env') });
+// console.log('Dotenv result:', result);
 console.log('Environment loaded:', {
     AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID ? '****' : undefined,
     AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY ? '****' : undefined,

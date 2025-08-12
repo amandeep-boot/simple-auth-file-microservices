@@ -34,7 +34,11 @@ npm install
 ```env
 PORT=3001
 MONGODB_URI=mongodb://localhost:27017/authservice
-JWT_SECRET=your-secret-key-here
+JWT_ACCESS_SECRET=your_super_secure_access_secret_key_here
+JWT_REFRESH_SECRET=your_super_secure_refresh_secret_key_here
+JWT_ACCESS_EXPIRY=15m
+JWT_REFRESH_EXPIRY=7d
+BCRYPT_ROUNDS=12
 ```
 
 **File Service (.env):**
@@ -47,6 +51,8 @@ AWS_SECRET_ACCESS_KEY=your-aws-secret-key
 AWS_REGION=us-east-1
 S3_BUCKET_NAME=your-s3-bucket-name
 ```
+
+> Note: Ensure the S3 bucket exists in the specified AWS_REGION and your AWS credentials have permission for HeadBucket, PutObject, and GetObject on that bucket.
 
 ### 3. Run Services
 ```bash
