@@ -50,16 +50,21 @@ This project implements a microservices architecture with two independent Node.j
 User {
   _id: ObjectId,
   email: String (unique),
-  passwordHash: String,
+  password: String (bcrypt-hashed),
+  isActive: Boolean,
+  lastLogin: Date | null,
   createdAt: Date,
   updatedAt: Date
 }
 ```
 
 **API Endpoints:**
-- `POST /auth/register` - Create new user account
-- `POST /auth/login` - Authenticate user and return JWT
-- `GET /auth/validate` - Validate JWT token
+- `POST /auth/register` — Create user (email + password)
+- `POST /auth/login` — Authenticate, returns `{ accessToken, refreshToken }`
+- `POST /auth/refresh` — Exchange refresh token for new pair
+- `GET /auth/validate` — Validate access token
+- `GET /auth/me` — Current user profile (requires Bearer)
+- `POST /auth/logout` — Optional refresh-token invalidation
 
 ### 2. File Service (Port 3002)
 
@@ -95,9 +100,12 @@ File {
 ```
 
 **API Endpoints:**
-- `POST /api/upload` - Upload file to S3 and save metadata
-- `GET /api/file/:id` - Get presigned download URL
-- `GET /api/files` - List user's files
+- `GET /health` — Service health check
+- `POST /api/upload` — Raw body upload (≤ 50MB) to S3 + metadata in MongoDB
+  - Headers: `Authorization: Bearer <token>`, `Content-Type`, `X-Filename`
+- `GET /api/file/:id` — Presigned S3 download URL (1-hour expiry), ownership enforced
+- `GET /api/files` — List files for authenticated user
+- `GET /api/me` — Profile + file stats (calls Auth Service `/auth/validate`)
 
 ## Data Flow
 
@@ -119,9 +127,9 @@ Client → Auth Service → MongoDB
 ### File Upload Process
 ```
 Client → File Service → Auth Service → AWS S3 → MongoDB
-  1. POST /api/upload with JWT + file data
+  1. POST /api/upload with JWT + raw file body
   2. Validate JWT with Auth Service
-  3. Check file size (≤ 50MB)
+  3. Check file size (≤ 50MB), read `X-Filename` and `Content-Type`
   4. Generate unique S3 key
   5. Upload file to S3 bucket
   6. Save metadata to MongoDB
@@ -142,8 +150,8 @@ Client → File Service → Auth Service → MongoDB → AWS S3
 ## Security Architecture
 
 ### Authentication Flow
-1. **User Registration:** Passwords hashed with bcrypt (salt rounds: 12)
-2. **JWT Tokens:** HMAC-signed with secret key, include userId
+1. **User Registration:** Passwords hashed with bcrypt (`BCRYPT_ROUNDS`, e.g., 12)
+2. **JWT Tokens:** HMAC-signed with secrets, include `userId` (access + refresh)
 3. **Token Validation:** File Service validates tokens via Auth Service HTTP call
 4. **File Access Control:** Users can only access their own files
 
@@ -208,18 +216,29 @@ Client → File Service → Auth Service → MongoDB → AWS S3
 
 ### Environment Variables
 **Auth Service:**
-- `PORT` - Service port (default: 3001)
-- `MONGODB_URI` - MongoDB connection string
-- `JWT_SECRET` - Secret key for JWT signing
+- `PORT` — Service port (default: 3001)
+- `MONGODB_URI` — MongoDB connection string
+- `JWT_ACCESS_SECRET` — HMAC secret for access tokens
+- `JWT_REFRESH_SECRET` — HMAC secret for refresh tokens
+- `JWT_ACCESS_EXPIRY` — e.g., `15m`
+- `JWT_REFRESH_EXPIRY` — e.g., `7d`
+- `BCRYPT_ROUNDS` — e.g., `12`
 
 **File Service:**
-- `PORT` - Service port (default: 3002)
-- `MONGODB_URI` - MongoDB connection string
-- `AUTH_SERVICE_URL` - Auth service endpoint
-- `AWS_ACCESS_KEY_ID` - AWS credentials
-- `AWS_SECRET_ACCESS_KEY` - AWS credentials
-- `AWS_REGION` - AWS region
-- `S3_BUCKET_NAME` - S3 bucket name
+- `PORT` — Service port (default: 3002)
+- `MONGODB_URI` — MongoDB connection string
+- `AUTH_SERVICE_URL` — Auth service base URL (e.g., `http://localhost:3001`)
+- `AWS_ACCESS_KEY_ID` — AWS credentials
+- `AWS_SECRET_ACCESS_KEY` — AWS credentials
+- `AWS_REGION` — AWS region (e.g., `ap-south-1`)
+- `S3_BUCKET_NAME` — S3 bucket name
+
+### Operational Notes
+- On startup, File Service verifies S3 credentials and bucket accessibility; errors are logged with remediation tips.
+- HTTP request logging via Morgan in File Service.
+- Uploads are raw (not multipart/form-data) with a strict 50MB limit.
+- Required headers for upload: `Authorization`, `Content-Type`, `X-Filename`.
+- Presigned download URLs expire after 1 hour by default.
 
 ## Monitoring & Logging
 
