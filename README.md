@@ -48,7 +48,7 @@ MONGODB_URI=mongodb://localhost:27017/fileservice
 AUTH_SERVICE_URL=http://localhost:3001
 AWS_ACCESS_KEY_ID=your-aws-access-key
 AWS_SECRET_ACCESS_KEY=your-aws-secret-key
-AWS_REGION=us-east-1
+AWS_REGION=ap-south-1
 S3_BUCKET_NAME=your-s3-bucket-name
 ```
 
